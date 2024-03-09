@@ -4,19 +4,19 @@ from enum import Enum
 from groq import Groq
 from langchain.output_parsers import PydanticOutputParser
 
-from modules.models.link_parser import ArticleSummarize, ArticleAnalysisContentCreation
+from modules.models.article import ArticleAnalysisContentCreation
 from modules.templates import SYSTEM_INSTRUCTION_TEMPLATE
 from modules.settings import GROQ_API_KEY
 
 
 class LanguageModelVariants(Enum):
-    Llama2_70b = "Llama2-70b-4096"
+    Llama2_70b = "llama2-70b-4096"
     Mixtral_7b = "mixtral-8x7b-32768"
 
 
 @dataclass
 class LanguageModelParams:
-    llm_model: LanguageModelVariants
+    model: LanguageModelVariants
     temperature: float
     max_tokens: int
     top_p: int
@@ -34,7 +34,7 @@ class ArticleSummarizationHandler:
         self.client = Groq(api_key=GROQ_API_KEY)
         self.llm_params = llm_params
 
-    def __call__(self, article_content: str, path_to_save: str) -> ArticleSummarize:
+    def __call__(self, article_content: str) -> ArticleAnalysisContentCreation:
         article_analytics_content: PydanticOutputParser = PydanticOutputParser(
             pydantic_object=ArticleAnalysisContentCreation
         )
@@ -42,7 +42,7 @@ class ArticleSummarizationHandler:
             format_instructions=article_analytics_content.get_format_instructions()
         )
 
-        completion = self.client.messages.create(
+        completion = self.client.chat.completions.create(
             messages=[
                 {
                     "role": "system",

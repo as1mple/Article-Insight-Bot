@@ -27,6 +27,13 @@ class HabrArticleParserHandler:
         ]
         return DailyArticles(articles=articles_list)
 
+    def get_content(self, link: str) -> str:
+        response = requests.get(link)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        content = soup.find_all(class_='article-formatted-body article-formatted-body article-formatted-body_version-2')[0]
+        return content.text
+
     def save_to_json(self, path_to_save, data: dict) -> None:
         with open(path_to_save, 'w', encoding='utf-8') as file:
             json.dump(data, file, ensure_ascii=False, indent=4)

@@ -1,8 +1,5 @@
 FROM python:3.11
 
-ARG TOKEN
-ENV TOKEN=${TOKEN}
-
 COPY requirements.txt ./requirements.txt
 
 RUN python -m pip install -U pip && \
