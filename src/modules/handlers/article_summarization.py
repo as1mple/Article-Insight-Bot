@@ -6,7 +6,6 @@ from langchain.output_parsers import PydanticOutputParser
 
 from modules.models.link_parser import ArticleSummarize, ArticleAnalysisContentCreation
 from modules.templates import SYSTEM_INSTRUCTION_TEMPLATE
-from modules.handlers.parser import ContentParserHandler
 from modules.settings import GROQ_API_KEY
 
 
@@ -27,8 +26,6 @@ class LanguageModelParams:
 
 class ArticleSummarizationHandler:
     def __init__(self, llm_params: LanguageModelParams) -> None:
-        self.scraper = ContentParserHandler()
-
         article_model: PydanticOutputParser = PydanticOutputParser(pydantic_object=ArticleAnalysisContentCreation)
         self.system_message = SYSTEM_INSTRUCTION_TEMPLATE.format(
             format_instructions=article_model.get_format_instructions()
@@ -37,12 +34,7 @@ class ArticleSummarizationHandler:
         self.client = Groq(api_key=GROQ_API_KEY)
         self.llm_params = llm_params
 
-        # self.logger = BaseLogger(__name__)
-
-    def __call__(self, url: str, path_to_save: str) -> ArticleSummarize:
-        article_content = self.scraper.parse_url(url)
-        # self.scraper.save_to_file(article_content, path_to_save)
-
+    def __call__(self, article_content: str, path_to_save: str) -> ArticleSummarize:
         article_analytics_content: PydanticOutputParser = PydanticOutputParser(
             pydantic_object=ArticleAnalysisContentCreation
         )

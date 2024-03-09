@@ -1,10 +1,8 @@
 import logging
 import os
 
-
-DEFAULT_DATA_RESOURCES_PATH: str = "resources/default_data_resources.json"
-
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY")
+TOKEN = os.getenv("TOKEN")
 
 VERBOSE = 2
 

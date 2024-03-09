@@ -1,6 +1,22 @@
 from pydantic import BaseModel, Field
 
 
+class Article(BaseModel):
+    title: str
+    link: str
+
+
+class DailyArticles(BaseModel):
+    articles: list[Article]
+
+    def __str__(self):
+        articles_str = "\n".join([
+            "\n".join([f"{field}: {getattr(article, field)}" for field in article.__fields__])
+            for article in self.articles
+        ])
+        return f"DailyArticles:\n{articles_str}"
+
+
 class ArticleAnalysisContentCreation(BaseModel):
     main_idea: str = Field(
         description="The core message or concept of the article, capturing the essence of what the article is about. " \
