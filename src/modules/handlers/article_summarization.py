@@ -7,7 +7,7 @@ from langchain.output_parsers import PydanticOutputParser
 from app import logger
 from modules.models.llm import LanguageModelParams
 from modules.models.article import ArticleAnalysisContentCreation
-from modules.templates import SYSTEM_ARTICLE_ANALYSIS_TEMPLATE
+from modules.templates import SYSTEM_ARTICLE_ANALYSIS_TEMPLATE, SYSTEM_QUESTION_ANSWER_TEMPLATE
 from settings import GROQ_API_KEY
 
 
@@ -56,3 +56,25 @@ class ArticleSummarizationHandler:
             return result
 
         return analytics_content
+
+    def answer_to_additional_question(self, user_question: str, article_content: str) -> str:
+        completion = self.client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_QUESTION_ANSWER_TEMPLATE
+                },
+                {
+                    "role": "user",
+                    "content": f"{user_question}, <context>{article_content}</context>"
+                },
+            ],
+            **asdict(self.llm_params)
+        )
+        try:
+            result = completion.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error during answering to additional question: {str(e)}")
+            return f"Error during answering to additional question. {e}"
+
+        return result
