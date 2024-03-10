@@ -75,13 +75,18 @@ async def cmd_summarize_article(message: Message, state: FSMContext):
 
         await message.answer(f"Getting the article content...", reply_markup=ReplyKeyboardRemove())
         logger.info(f"User [{message.chat.username}] => Getting the article content ...")
+        try:
+            content = router.habr_handler.get_content(article_link)
+        except IndexError as e:
+            logger.error(f"User [{message.chat.username}] => Error during getting the article content: {str(e)}")
+            await message.answer(f"Error during getting the article content")
+            await state.set_state(ArticleStates.CHOOSING)
 
-        content = router.habr_handler.get_content(article_link)
-        logger.info(f"User [{message.chat.username}] => Article content received. => {content[:100]} ...")
+        else:
+            logger.info(f"User [{message.chat.username}] => Article content received...")
+            summarization_obj = router.article_summarization(content)
 
-        summarization_obj = router.article_summarization(content)
-
-        await message.answer(str(summarization_obj))
+            await message.answer(str(summarization_obj))
     else:
         await message.answer("Ok, if you need a summary, feel free to ask!", reply_markup=ReplyKeyboardRemove())
     await state.set_state(ArticleStates.CHOOSING)
