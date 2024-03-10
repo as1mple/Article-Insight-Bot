@@ -1,33 +1,20 @@
-from dataclasses import dataclass, asdict
-from enum import Enum
+from dataclasses import asdict
 
+import pydantic
 from groq import Groq
 from langchain.output_parsers import PydanticOutputParser
 
+from app import logger
+from modules.models.llm import LanguageModelParams
 from modules.models.article import ArticleAnalysisContentCreation
-from modules.templates import SYSTEM_INSTRUCTION_TEMPLATE
-from modules.settings import GROQ_API_KEY
-
-
-class LanguageModelVariants(Enum):
-    Llama2_70b = "llama2-70b-4096"
-    Mixtral_7b = "mixtral-8x7b-32768"
-
-
-@dataclass
-class LanguageModelParams:
-    model: LanguageModelVariants
-    temperature: float
-    max_tokens: int
-    top_p: int
-    stream: bool
-    stop: None | str
+from modules.templates import SYSTEM_ARTICLE_ANALYSIS_TEMPLATE
+from settings import GROQ_API_KEY
 
 
 class ArticleSummarizationHandler:
     def __init__(self, llm_params: LanguageModelParams) -> None:
         article_model: PydanticOutputParser = PydanticOutputParser(pydantic_object=ArticleAnalysisContentCreation)
-        self.system_message = SYSTEM_INSTRUCTION_TEMPLATE.format(
+        self.system_message = SYSTEM_ARTICLE_ANALYSIS_TEMPLATE.format(
             format_instructions=article_model.get_format_instructions()
         )
 
@@ -38,10 +25,11 @@ class ArticleSummarizationHandler:
         article_analytics_content: PydanticOutputParser = PydanticOutputParser(
             pydantic_object=ArticleAnalysisContentCreation
         )
-        system_message = SYSTEM_INSTRUCTION_TEMPLATE.format(
+        system_message = SYSTEM_ARTICLE_ANALYSIS_TEMPLATE.format(
             format_instructions=article_analytics_content.get_format_instructions()
         )
 
+        logger.info(f"User => Start summarizing article content ...")
         completion = self.client.chat.completions.create(
             messages=[
                 {
@@ -55,7 +43,16 @@ class ArticleSummarizationHandler:
             ],
             **asdict(self.llm_params)
         )
+        try:
+            result = completion.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error during summarizing article content: {str(e)}")
+            return f"Error during summarizing article content. {e}"
 
-        result = completion.choices[0].message.content
+        try:
+            analytics_content = ArticleAnalysisContentCreation.parse_raw(result)
+        except pydantic.ValidationError as e:
+            logger.error(f"Error during parsing article content: {str(e)}")
+            return result
 
-        return ArticleAnalysisContentCreation.parse_raw(result)
+        return analytics_content

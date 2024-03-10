@@ -5,22 +5,15 @@ from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery, InlineKey
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
+from app import logger
 from modules.handlers.scraping import HabrArticleParserHandler
-from modules.handlers.article_summarization import ArticleSummarizationHandler, LanguageModelParams, LanguageModelVariants
+from modules.handlers.article_summarization import ArticleSummarizationHandler
+from settings import LLM_PARAMS
 
 router = Router()
 
-llm_params = LanguageModelParams(
-    model=LanguageModelVariants.Llama2_70b.value,
-    temperature=0.5,
-    max_tokens=4024,
-    top_p=1,
-    stream=False,
-    stop=None
-)
-
 router.habr_handler = HabrArticleParserHandler()
-router.article_summarization = ArticleSummarizationHandler(llm_params)
+router.article_summarization = ArticleSummarizationHandler(LLM_PARAMS)
 
 
 class ArticleStates(StatesGroup):
@@ -31,8 +24,10 @@ class ArticleStates(StatesGroup):
 @router.message((F.text == "Get today news 📰") | (F.text == "/today_news"))
 async def cmd_get_today_news(message: Message, state: FSMContext):
     await message.answer("Getting today news 📰")
+    logger.info(f"User [{message.chat.username}] => Getting today news ...")
 
     articles = router.habr_handler.get_top_articles().articles
+    logger.info(f"User [{message.chat.username}] => Today news received. => {' | '.join([article.title for article in articles])}")
     buttons = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=article.title, callback_data=article.link)]
@@ -50,14 +45,15 @@ async def cmd_get_today_news(message: Message, state: FSMContext):
 @router.callback_query(StateFilter("ArticleStates:CHOOSING"))
 async def cmd_get_article_link(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
+    logger.info(f"User [{callback_query.message.chat.username}] => User choose article: {callback_query.data}")
     await callback_query.message.answer(
         f"‏‏‎ ‎\n ↻ <i>To read the article, follow the <a href='{callback_query.data}'>link</a></i>",
         reply_markup=ReplyKeyboardRemove(),
         parse_mode="HTML"
     )
 
-    await state.update_data(article_link=callback_query.data)  # Сохраняем ссылку на статью
-    await state.set_state(ArticleStates.SUMMARIZING)  # Переход в состояние суммаризации
+    await state.update_data(article_link=callback_query.data)
+    await state.set_state(ArticleStates.SUMMARIZING)
 
     bool_keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text='Yes'), KeyboardButton(text='No')]],
@@ -70,20 +66,24 @@ async def cmd_get_article_link(callback_query: CallbackQuery, state: FSMContext)
 
 @router.message(StateFilter("ArticleStates:SUMMARIZING"))
 async def cmd_summarize_article(message: Message, state: FSMContext):
+    # message.model_dump_json(indent=4, exclude_none=True)
+    logger.info(f"User [{message.chat.username}] => User answer to summarize article: {message.text}")
     answer = message.text.lower()
-    if answer.lower() == "yes":
+    if answer == "yes":
         data = await state.get_data()
         article_link = data.get("article_link")
 
         await message.answer(f"Getting the article content...", reply_markup=ReplyKeyboardRemove())
+        logger.info(f"User [{message.chat.username}] => Getting the article content ...")
+
         content = router.habr_handler.get_content(article_link)
+        logger.info(f"User [{message.chat.username}] => Article content received. => {content[:100]} ...")
 
         summarization_obj = router.article_summarization(content)
 
         await message.answer(str(summarization_obj))
     else:
         await message.answer("Ok, if you need a summary, feel free to ask!", reply_markup=ReplyKeyboardRemove())
-    # await state.clear()
     await state.set_state(ArticleStates.CHOOSING)
 
 
@@ -91,4 +91,3 @@ def register_handlers(dp: Dispatcher):
     dp.register_message_handler(cmd_get_today_news)
     dp.register_callback_query_handler(cmd_get_article_link)
     dp.register_message_handler(cmd_summarize_article)
-

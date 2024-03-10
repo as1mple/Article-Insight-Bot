@@ -1,24 +1,27 @@
 import asyncio
-import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from loguru import logger
 
 from modules.handlers import message, button
-from modules.settings import TOKEN
+from settings import TOKEN, LOGCONFIG
 
 
 async def main():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    logger.configure(
+        handlers=LOGCONFIG.to_dicts(),
     )
 
     dp = Dispatcher(storage=MemoryStorage())
     bot = Bot(TOKEN)
 
+    logger.info("Bot started.")
+
     dp.include_router(message.router)
     dp.include_router(button.router)
+
+    logger.info("Routers included.")
 
     await bot.set_my_commands([
         {"command": "/start", "description": "Start the bot"},

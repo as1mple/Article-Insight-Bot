@@ -3,6 +3,8 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup
 
+from app import logger
+
 router = Router()
 
 keyboard = ReplyKeyboardMarkup(keyboard=[[
@@ -13,5 +15,5 @@ keyboard = ReplyKeyboardMarkup(keyboard=[[
 @router.message(Command(commands=["start", "hello"]))
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
-
-    await message.reply("Hi!", reply_markup=keyboard)
+    logger.info(f"User [{message.chat.username}] => Started the bot. => {message.text}")
+    await message.reply("Hi! Do you want to get today news?!", reply_markup=keyboard)

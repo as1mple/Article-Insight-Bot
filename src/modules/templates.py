@@ -1,4 +1,4 @@
-SYSTEM_INSTRUCTION_TEMPLATE = """\
+SYSTEM_ARTICLE_ANALYSIS_TEMPLATE = """\
 You are an assistant tasked with analyzing articles and creating engaging content. \
 You will be provided with the context of an article. \
 YOUR TASK is to identify the main idea of the article, extract the key insights and \
