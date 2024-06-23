@@ -7,7 +7,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TOKEN = os.getenv("TOKEN")
 
 LLM_PARAMS = LanguageModelParams(
-    model=LanguageModelVariants.Llama2_70b.value,
+    model=LanguageModelVariants.Llama3_70b.value,
     temperature=0.5,
     max_tokens=4024,
     top_p=1,
